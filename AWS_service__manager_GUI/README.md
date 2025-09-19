@@ -1,4 +1,4 @@
-# AWS CLI GUI Manager
+# AWS SDK GUI Manager
 
 A simple graphical user interface for managing/interacting with AWS services, which was built with Python and PyQt6.
 
