@@ -1,0 +1,187 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 300
+    Environment:
+      Variables:
+        REPORTS_TABLE: !Ref ReportsTable
+        REPORTS_BUCKET: !Ref ReportsBucket
+
+Resources:
+  # S3 Bucket for storing reports
+  ReportsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: automated-reports-bucket
+
+  # DynamoDB Table
+  ReportsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: automated-reports-table
+      AttributeDefinitions:
+        - AttributeName: reportId
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+      KeySchema:
+        - AttributeName: reportId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: StatusIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+
+  # API Gateway
+  ReportApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: automated-reports-api
+      StageName: dev
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+
+  # EventBridge Rule for Daily Reports
+  DailyReportRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: automated-reports-daily-rule
+      Description: "Triggers daily report generation"
+      # 9 AM UTC daily
+      ScheduleExpression: "cron(0 9 * * ? *)" 
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt GenerateReportFunction.Arn
+          Id: "DailyReportTarget"
+          Input: '{"reportType": "daily", "automated": true}'
+
+  # Lambda Functions
+  RequestReportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: automated-reports-request-report
+      CodeUri: code/request_report.py
+      Handler: request_report.lambda_handler
+      Environment:
+        Variables:
+          GENERATE_FUNCTION_NAME: automated-reports-generate-report
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref ReportsTable
+        - S3WritePolicy:
+            BucketName: !Ref ReportsBucket
+        - LambdaInvokePolicy:
+            FunctionName: !Ref GenerateReportFunction
+      Events:
+        RequestReport:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ReportApi
+            Path: /reports
+            Method: post
+
+  GenerateReportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: automated-reports-generate-report
+      CodeUri: code/generate_report.py
+      Handler: generate_report.lambda_handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref ReportsTable
+        - S3WritePolicy:
+            BucketName: !Ref ReportsBucket
+
+  ProcessReportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: automated-reports-process-report
+      CodeUri: code/process_report.py
+      Handler: process_report.lambda_handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref ReportsTable
+        - S3ReadPolicy:
+            BucketName: !Ref ReportsBucket
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt NotificationTopic.TopicName
+
+  GetReportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: automated-reports-get-report
+      CodeUri: code/get_report.py
+      Handler: get_report.lambda_handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ReportsTable
+        - S3ReadPolicy:
+            BucketName: !Ref ReportsBucket
+      Events:
+        GetReport:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ReportApi
+            Path: /reports/{reportId}
+            Method: get
+
+  ListReportsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: automated-reports-list-reports
+      CodeUri: code/list_reports.py
+      Handler: list_reports.lambda_handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ReportsTable
+      Events:
+        ListReports:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ReportApi
+            Path: /reports
+            Method: get
+
+
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: automated-reports-notifications
+
+  # Permissions
+  EventBridgeInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GenerateReportFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt DailyReportRule.Arn
+
+  S3InvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProcessReportFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !Sub "arn:aws:s3:::${ReportsBucket}/*"
+
+
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ReportApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
+  
+  ReportsBucket:
+    Description: S3 bucket for reports
+    Value: !Ref ReportsBucket

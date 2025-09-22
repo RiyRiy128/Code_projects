@@ -1,0 +1,197 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 30
+    Environment:
+      Variables:
+        ORDERS_TABLE: !Ref OrdersTable
+
+Resources:
+  # DynamoDB Table
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: orders
+      AttributeDefinitions:
+        - AttributeName: orderId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: orderId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # API Gateway
+  OrderApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+
+  # functions
+  SubmitOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: code/submit_order.py
+      Handler: submit_order.lambda_handler
+      Environment:
+        Variables:
+          STATE_MACHINE_ARN: !Ref OrderProcessingStateMachine
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref OrdersTable
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt OrderProcessingStateMachine.Name
+      Events:
+        SubmitOrder:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OrderApi
+            Path: /orders
+            Method: post
+
+  GetOrderStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: code/get_order_status.py
+      Handler: get_order_status.lambda_handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref OrdersTable
+      Events:
+        GetOrderStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OrderApi
+            Path: /orders/{orderId}
+            Method: get
+
+  ValidateOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: code/validate_order.py
+      Handler: validate_order.lambda_handler
+
+  ProcessPaymentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: code/process_payment.py
+      Handler: process_payment.lambda_handler
+
+  UpdateInventoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: code/update_inventory.py
+      Handler: update_inventory.lambda_handler
+
+  SendNotificationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: code/send_notification.py
+      Handler: send_notification.lambda_handler
+
+  HandleFailureFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: code/handle_failure.py
+      Handler: handle_failure.lambda_handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref OrdersTable
+
+  # State machine
+  OrderProcessingStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: OrderProcessingWorkflow
+      RoleArn: !GetAtt StepFunctionRole.Arn
+      DefinitionString: !Sub |
+        {
+          "Comment": "Order Processing Workflow",
+          "StartAt": "ValidateOrder",
+          "States": {
+            "ValidateOrder": {
+              "Type": "Task",
+              "Resource": "${ValidateOrderFunction.Arn}",
+              "Next": "ProcessPayment",
+              "Catch": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "Next": "HandleFailure"
+                }
+              ]
+            },
+            "ProcessPayment": {
+              "Type": "Task",
+              "Resource": "${ProcessPaymentFunction.Arn}",
+              "Next": "UpdateInventory",
+              "Catch": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "Next": "HandleFailure"
+                }
+              ]
+            },
+            "UpdateInventory": {
+              "Type": "Task",
+              "Resource": "${UpdateInventoryFunction.Arn}",
+              "Next": "SendNotification",
+              "Catch": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "Next": "HandleFailure"
+                }
+              ]
+            },
+            "SendNotification": {
+              "Type": "Task",
+              "Resource": "${SendNotificationFunction.Arn}",
+              "Next": "Success"
+            },
+            "Success": {
+              "Type": "Succeed"
+            },
+            "HandleFailure": {
+              "Type": "Task",
+              "Resource": "${HandleFailureFunction.Arn}",
+              "Next": "Failure"
+            },
+            "Failure": {
+              "Type": "Fail"
+            }
+          }
+        }
+
+  StepFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: '*'
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${OrderApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+  
+  StateMachineArn:
+    Description: Step Functions State Machine ARN
+    Value: !Ref OrderProcessingStateMachine

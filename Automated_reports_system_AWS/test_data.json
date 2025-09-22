@@ -1,0 +1,19 @@
+{
+  "daily_report": {
+    "reportType": "daily",
+    "userId": "user_123"
+  },
+  "weekly_report": {
+    "reportType": "weekly",
+    "userId": "user_123"
+  },
+  "custom_report": {
+    "reportType": "custom",
+    "userId": "user_123",
+    "parameters": {
+      "startDate": "2024-01-01",
+      "endDate": "2024-01-31",
+      "metric": "revenue"
+    }
+  }
+}
