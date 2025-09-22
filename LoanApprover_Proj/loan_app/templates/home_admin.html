@@ -1,0 +1,31 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+{% block content%}
+  <div class="homepage container">
+      <div class="row text-center mt-5">
+
+          {% if user.is_authenticated and user.is_superuser %}
+                               
+          <div class="col-sm mt-5">
+              <h1 style="color:orange">Bank Admin</h1>
+              <br>
+              <form action="{%url 'loan_app:getresult_admin'%}" method="post">
+                    {% csrf_token%}
+                  <input required type="text" name="reference" class="finance_custom_input form-control" placeholder=" Customer Reference Code" >
+
+              <br>
+              <button style="border-radius: 16px" class="home_call btn btn-warning " type="submit" >Check if Customer qualifies</button>
+              </form>
+          </div>
+   
+          {% else %}
+                    <h3>Please Log In as admin</h3>
+          {% endif %}
+              
+
+
+			
+      </div>
+      &nbsp;
+  </div>
+{% endblock%}

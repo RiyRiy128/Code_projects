@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content%}
+  <div class="homepage container">
+      <div class="row text-center mt-5">
+              
+
+      {% if user.is_authenticated and user.is_superuser %}
+      <div class="col-sm mt-5">
+        <h1>Welcome Administrator</h1>
+        <br>
+        <p class="lead">Click below to check customers profile and approve/deny loan requests</p>
+        
+        <a class="home_call btn btn-warning" href="{%url 'loan_app:bank_admin'%}">Go to bank admin</a>
+      </div>
+      
+      {% else %}
+      <div class="col-sm mt-5">
+          <h1>Welcome To MrRobot Bank's Loan Checker</h1>
+					<br>
+          <p class="lead">Do you need a loan to follow your dreams?</p>
+					
+          <a class="home_call btn btn-warning" href="{%url 'loan_app:apply'%}">Check if I qualify</a>
+      </div>
+      {% endif %}
+          
+			
+      </div>
+      &nbsp;
+  </div>
+{% endblock%}

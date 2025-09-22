@@ -1,0 +1,32 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+{% block content%}
+  <div class="homepage_details container">
+      <div class="row text-center mt-5">
+              
+      <div style="text-align: left;" class="col-sm mt-5">
+          <h1>Loan Agreement</h1>
+					<br>
+          <p>This Loan agreement is entered into on the date of {{datetime}} by and between </p>
+          <br>
+          <p><b>Mr Robot Bank</b></p>
+          <p>AND:</p>
+          <p>{{full_name}}<p>
+          <p>Hereinafter,the Borrower and the lender will be collectively referred to as the "parties"</p>
+          <p>Subject to the terms and condition of this Agreement,the Lender hereby agrees to extend a loan of funds to the Borrower and the Borrower Accepts such a loan of funds from the lender</p>
+
+          <p>The Lender agrees to a loan a sum of R{{amount}} to the borrower on {{datetime}} in accordance with the procedure as outlined in this agreement.The borrower shall return the same sum ,along with the Interest charged in accordance with the procedure as outlined in this Agreement.</p>
+
+          <button style="border-radius: 16px" class="home_call btn btn-warning " type="submit" >Print Agreement</button>
+          <br>
+          <br>
+      </div>
+     
+  </div>
+  </div>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+{% endblock%}

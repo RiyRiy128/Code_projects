@@ -1,0 +1,44 @@
+
+
+{% extends 'base.html' %}
+
+{% block content%}
+{% load static %}
+  <script type="text/javascript">
+    function openInNewTab() {
+      window.open("{%url 'loan_app:terms'%}", '_blank').focus();
+    }
+  </script>
+
+  <div class="homepage_details container">
+      <div class="row text-left mt-5">
+              
+      <div class="col-sm mt-5">
+
+        {% if decision %}
+          <h1>Congratulations!</h1>
+					<h1>You qualify for your R{{amount}} loan.</h1>
+        {% else %}
+          <h1>Unfortunately you dont qualify for this loan.!</h1>
+					<h1>Try Improving Your credit score or increasing your income.</h1>
+        {% endif %}
+                  
+        <h2>Here is your reference code:</h2>
+        <div>
+          <h3 class="twocol" name="ref_code" style="color:red"> {{ref_code}}</h3>
+          <button class="twocol btn btn-warning" onclick="openInNewTab()">Have you read our T's & C's</button>  
+        </div>
+        
+        <br>
+        <h4>Please take note of the above reference code and visit your nearest Mr Robot Bank branch to finalise your loan if you qualified, or to enquire if you did not qualify</h4>
+
+
+      </div>
+
+
+      </div>
+      &nbsp;
+  </div>
+
+
+{% endblock%}

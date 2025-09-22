@@ -1,0 +1,47 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+{% block content%}
+  <div class="homepage_details container">
+      <div class="row text-center mt-5">
+              
+      <div style="text-align: left;" class="col-sm mt-5">
+          <h1>Details</h1>
+					<br>
+          <p class="lead">Identification Number:{{id}} </p>
+          <p class="lead">First Name: {{first_name}}</p>
+          <p class="lead">Surname: {{last_name}}</p>
+          <p class="lead">Loan Amount: R{{amount}} </p>
+          <p class="lead">Loan Term: {{term_months}} months</p>
+          <p class="lead">Interest Rate: {{interest}}%</p>
+          <p class="lead">Monthly Repayment: R{{monthly_repayment}} pm</p>
+
+
+        {% if decision %}
+          <p><i>Customer can be approved for the loan</i></p>
+          
+        {% else %}
+          <p><i>Customer should not be approved for this loan:Risky Profile for amount</i></p>
+          
+        {% endif %}
+
+					
+          <!-- Button trigger modal -->
+
+          <br><br>
+           <a class="home_call approvedeny btn btn-warning" href="{%url 'loan_app:loan_agreement'%}">Approve</a>
+          
+          <a class="home_call approvedeny btn btn-warning" href="{%url 'loan_app:bank_admin'%}">Deny </a>
+      </div>
+
+
+			
+      </div>
+      
+  </div>
+    <br>
+  <br>
+  <br>
+  <br>
+  <br>
+
+{% endblock%}

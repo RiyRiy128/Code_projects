@@ -1,0 +1,65 @@
+
+{% extends 'base.html' %}
+
+{% block content%}
+{% load static %}
+
+<script>
+  function changebg(){
+    document.body.style.background = "url({% static 'assets/img/agreement.jpg' %}) no-repeat center center fixed";
+  }
+  //changebg();
+</script>
+
+  <div class="homepage container">
+      <div class="row text-left mt-5">
+              
+      <div class="right_col col-sm mt-5">
+         
+          <h1>Select your loan type and fill in the loan amount</h1>
+           <form action="{%url 'loan_app:details'%}" method="post">
+                {% csrf_token%}
+
+                <br>
+                <div class="finance_custom_input form-control input-group mb-3">
+                  <div class="input-group-prepend">
+                    <label class="input-group-text"for="inputGroupSelect01">Loan Type</label>
+                  </div>
+                  <select required class="custom-select" name="term" id="inputGroupSelect01">
+                    <option value="3">Short Term: 3 Months</option>
+                    <option value="6">Short Term: 6 Months</option>
+                    <option value="12">Short Term: 12 Months</option>
+                    <option value="60">Long Term: 5 Years</option>
+                    <option value="120">Long Term: 10 Years</option>
+										<option value="121">Long Term: 10+ Years</option>
+                  </select>
+                </div>
+
+
+       
+
+              
+              <input required type="number" min="1000" name="amount" class="finance_custom_input form-control" placeholder="Enter your Amount" >
+              <br>
+            <button class="btn btn-warning btn-xl" type="submit">Next</button>
+        </form>
+          
+      </div>
+
+      </div>
+      &nbsp;
+  </div>
+
+<!-- 
+
+  <div class="col-lg-8 align-self-end">
+      <h1 class="text-white font-weight-bold">Fill in the form!</h1>
+      <hr class="divider" />
+  </div>
+  <div class="col-lg-8 align-self-baseline">
+      
+     
+     
+  </div> -->
+
+{% endblock%}

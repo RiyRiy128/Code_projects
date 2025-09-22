@@ -1,0 +1,39 @@
+
+
+{% extends 'base.html' %}
+
+{% block content%}
+{% load static %}
+<script>
+  function changebg(){
+    document.body.style.background = "url({% static 'assets/img/bg4_2.jpg' %}) no-repeat center center fixed";
+  }
+  ///changebg();
+</script>
+
+
+  <div class="homepage container">
+      <div class="row text-left mt-5">
+              
+      <div class="col-sm mt-5">
+          <h1>Step 3:</h1>
+					<h1>Verify Your ID Number</h1>
+          <!-- <button class="home_call btn btn-warning"><a href="{%url 'loan_app:apply'%}">Check if you qualify</a></button> -->
+      </div>
+      <div class="right_col col-sm mt-5">
+           <form action="{%url 'loan_app:getresult'%}" method="post">
+                {% csrf_token%}
+
+              <input required type="text"  autocomplete="off" name="id_number" class="finance_custom_input form-control" maxlength="13" minlength="13" placeholder="Enter your ID number" >
+              <br>
+            <button class="btn btn-warning btn-xl" type="submit">Next</button>
+        </form>
+          
+      </div>
+
+      </div>
+      &nbsp;
+  </div>
+
+
+{% endblock%}
